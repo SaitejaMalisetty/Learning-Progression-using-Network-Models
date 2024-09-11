@@ -1,0 +1,559 @@
+---
+title: "CIST1400Spring2023"
+author: "Saiteja Malisetty"
+date: "2023-07-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r importing kinematics data, message=FALSE, warning=FALSE, include=FALSE}
+
+library(ggplot2)
+library(GGally)
+#library(hrbrthemes)
+library(GGally)
+library(viridis)
+library(readxl)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+Final_DF_Results <- read_excel("2023_Spring_CIST1400_Cleaned.xlsx", sheet = "2023_Spring_CIST1400_Cleaned")
+
+head(Final_DF_Results)
+summary(Final_DF_Results)
+
+cols <- c("Student_ID", "Section", "Final_Grade")
+Final_DF_Results[cols] <- lapply(Final_DF_Results[cols], factor)
+
+head(Final_DF_Results)
+summary(Final_DF_Results)
+
+```
+
+# RMS correlation for All subjects
+
+```{r RMS correlation for All subjects, echo=FALSE, fig.height=10, fig.width=10}
+library(caret)
+library(ggplot2)
+library(GGally)
+#library(hrbrthemes)
+library(GGally)
+library(viridis)
+library(readxl)
+library(igraph)
+library(dplyr)
+library(ggplot2)
+#library(ggpubr)
+library(stats)
+library(corrr)
+library(corrplot)
+library(caret)
+#library(sna)
+
+## In-Person Class
+
+Final_Cor_Numeric_data <- Final_DF_Results[c(1:115), c(5:14)]
+
+cormat <- cor((Final_Cor_Numeric_data), method = "pearson")
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("Grade", "Q1", "Q2", "Q3", "Q4", "Q5", "Chalg", "MSP", "Recit", "Parti")
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.79 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(0,1,1,1,1,1,0,0,0,0))
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", "Grey")
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+
+################################################################################################################################
+################################################################################################################################
+
+##Online Class
+
+Final_Cor_Numeric_data <- Final_DF_Results[c(116:165), c(5:14)]
+
+cormat <- cor((Final_Cor_Numeric_data), method = "pearson")
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("Grade", "Q1", "Q2", "Q3", "Q4", "Q5", "Chalg", "MSP", "Recit", "Parti")
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.75 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(0,1,1,1,1,1,0,0,0,0))
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", "Grey")
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+```
+
+
+
+```{r}
+library(tidyr)
+library(readxl)
+library(reshape2)
+
+library(caret)
+library(ggplot2)
+library(GGally)
+#library(hrbrthemes)
+library(GGally)
+library(viridis)
+library(readxl)
+library(igraph)
+library(dplyr)
+library(ggplot2)
+#library(ggpubr)
+library(stats)
+library(corrr)
+library(corrplot)
+library(caret)
+# Reading the excel file of online grades
+
+Online_Grades <- read_excel("2023_Spring_CIST1400_Cleaned.xlsx", sheet = "Online_Grades")
+
+
+# Melt the data to convert it from wide to long format
+Online_melted_data <- melt(Online_Grades, id.vars = "Dummy_ID", variable.name = "type_of_grade", value.name = "grades")
+
+# Spread the data to convert it back to wide format with student IDs as column names
+Online_wide_data <- spread(Online_melted_data, key = "Dummy_ID", value = "grades")
+
+# Print the resulting data frame
+head(Online_wide_data)
+
+
+# Reading the excel file of In-Person-grades
+
+In_Person_Grades <- read_excel("2023_Spring_CIST1400_Cleaned.xlsx", sheet = "In-Person_Grades")
+
+
+# Melt the data to convert it from wide to long format
+In_Person__melted_data <- melt(In_Person_Grades, id.vars = "Dummy_ID", variable.name = "type_of_grade", value.name = "grades")
+
+# Spread the data to convert it back to wide format with student IDs as column names
+In_Person_wide_data <- spread(In_Person__melted_data, key = "Dummy_ID", value = "grades")
+
+# Print the resulting data frame
+head(In_Person_wide_data)
+```
+
+
+```{r}
+
+Online_Quiz1 <- Online_wide_data[2:16, ]
+Online_Quiz2 <- Online_wide_data[17:34, ]
+Online_Quiz3 <- Online_wide_data[35:47, ]
+Online_Quiz4 <- Online_wide_data[48:66, ]
+Online_Quiz5 <- Online_wide_data[67:82, ]
+
+
+In_Person_Quiz1 <- In_Person_wide_data[2:16, ]
+In_Person_Quiz2 <- In_Person_wide_data[17:34, ]
+In_Person_Quiz3 <- In_Person_wide_data[35:47, ]
+In_Person_Quiz4 <- In_Person_wide_data[48:66, ]
+In_Person_Quiz5 <- In_Person_wide_data[67:82, ]
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+
+Final_Cor_Numeric_data <- Online_Quiz5[, c(2:48)]
+cormat <- cor((Final_Cor_Numeric_data), method = "spearman")
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47")
+
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.90 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+cormatrix_1 <- cor_matrix
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,4))
+
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+
+
+```
+
+```{r}
+
+
+All_Grades_old <- read_excel("2023_Spring_CIST1400_Cleaned.xlsx", sheet = "ALL_Grades")
+
+# List of column indices to be removed
+columns_to_remove <- c(2, 3, 4, 5, 11, 12, 13, 14)
+
+# Remove the specified columns
+All_Grades <- All_Grades_old[, -columns_to_remove]
+
+tail(All_Grades)
+
+# Load necessary library
+library(dplyr)
+library(reshape2)
+
+# Melt the data to convert it from wide to long format
+All_melted_data <- melt(All_Grades, id.vars = "Dummy_ID", variable.name = "type_of_grade", value.name = "grades")
+
+# Create a vector of unique Dummy_IDs in the same order as they appear in All_Grades
+column_order <- unique(All_Grades$Dummy_ID)
+
+# Convert the "Dummy_ID" column to a factor with the desired order
+All_melted_data$Dummy_ID <- factor(All_melted_data$Dummy_ID, levels = column_order)
+
+# Spread the data to convert it back to wide format with student IDs as column names
+All_wide_data <- dcast(All_melted_data, type_of_grade ~ Dummy_ID, value.var = "grades")
+
+# Print the resulting data frame
+All_wide_data
+
+
+Online_Quizes <- All_wide_data[1:5, 2:51]
+Online_MSP <- All_wide_data[30:43, 2:51]
+Online_Challenge <- All_wide_data[6:29, 2:51]
+Online_Participation <- All_wide_data[57:81, 2:51]
+Online_Recitation <- All_wide_data[44:56, 2:51]
+
+
+Person_Quizes <- All_wide_data[1:5, 52:166]
+Person_MSP <- All_wide_data[30:43, 52:166]
+Person_Challenge <- All_wide_data[6:29, 52:166]
+Person_Participation <- All_wide_data[57:81, 52:166]
+Person_Recitation <- All_wide_data[44:56, 52:166]
+
+```
+
+
+```{r}
+
+Final_Cor_Numeric_data <- Online_Participation[,-c(48)]
+cormat <- cor((Final_Cor_Numeric_data), method = "pearson")
+
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49")
+
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.68 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+cormatrix_1 <- cor_matrix
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4))
+
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+```
+```{r}
+Final_Cor_Numeric_data <- Person_Quizes[ , -c(113)]
+cormat <- cor((Final_Cor_Numeric_data), method = "pearson")
+
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20",
+                  "21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38",
+                  "39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56",
+                  "57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74",
+                  "75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92",
+                  "93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108",
+                  "109","110","111","112","113","114")
+
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.85 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+cormatrix_1 <- cor_matrix
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(rep(1, 59), rep(2, 28), rep(3, 20), rep(4, 7)))
+
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+
+# Calculate the Maximum Weighted Clique
+mwc <- maximal.cliques(network)
+
+# Find the size of the Maximum Weighted Clique
+mwc_size <- max(lengths(mwc))
+
+# Find the Maximum Weighted Clique(s) in the correlation matrix
+mwc_indices <- which(lengths(mwc) == mwc_size)
+
+# Extract the nodes that form the Maximum Weighted Clique(s)
+mwc_nodes <- unlist(mwc[mwc_indices])
+
+# Create a vector to store colors for nodes based on best performers (mwc) and others
+node_colors <- ifelse(1:length(rownames) %in% mwc_nodes, "Blue", "Red")
+
+# Create the network graph with the new node colors
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+V(network)$color <- node_colors
+
+# ... (rest of your code for coloring nodes)
+
+plot(network, vertex.label.cex = 0.9, vertex.label.font = 2.5, edge.color = "red")
+```
+
+
+```{r}
+Final_Cor_Numeric_data <- Person_MSP[ , -c(111)]
+cormat <- cor((Final_Cor_Numeric_data), method = "pearson")
+
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20",
+                  "21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38",
+                  "39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56",
+                  "57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74",
+                  "75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92",
+                  "93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108",
+                  "109","110","111","112","113","114")
+
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.95 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+cormatrix_1 <- cor_matrix
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(rep(1, 59), rep(2, 28), rep(3, 20), rep(4, 7)))
+
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+
+# Load the igraph library
+library(igraph)
+
+layout <- layout_with_kk(network)
+
+# Set the vertex coordinates in the network based on the layout
+V(network)$x <- layout[, 1]
+V(network)$y <- layout[, 2]
+
+# Define colors for the nodes
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+
+# Plot the network with improved layout
+plot(network, vertex.label.cex = 0.9, vertex.label.font = 2.5, edge.color = "red")
+```
+```{r}
+Final_Cor_Numeric_data <- Person_Challenge[ , -c(111)]
+cormat <- cor((Final_Cor_Numeric_data), method = "pearson")
+
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20",
+                  "21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38",
+                  "39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56",
+                  "57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74",
+                  "75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92",
+                  "93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108",
+                  "109","110","111","112","113","114")
+
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.89 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+cormatrix_1 <- cor_matrix
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(rep(1, 59), rep(2, 28), rep(3, 20), rep(4, 7)))
+
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+
+# Load the igraph library
+library(igraph)
+
+layout <- layout_with_kk(network)
+
+# Set the vertex coordinates in the network based on the layout
+V(network)$x <- layout[, 1]
+V(network)$y <- layout[, 2]
+
+# Define colors for the nodes
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+
+# Plot the network with improved layout
+plot(network, vertex.label.cex = 0.9, vertex.label.font = 2.5, edge.color = "red")
+```
+```{r}
+Final_Cor_Numeric_data <- Person_Participation[ , -c(96, 109:112)]
+cormat <- cor((Final_Cor_Numeric_data), method = "pearson")
+
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20",
+                  "21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38",
+                  "39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56",
+                  "57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74",
+                  "75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92",
+                  "93","94","95","97","98","99","100","101","102","103","104","105","106","107","108",
+                  "109","110")
+
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.60 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+cormatrix_1 <- cor_matrix
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(rep(1, 59), rep(2, 28), rep(3, 19), rep(4, 3)))
+
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+```
+
+```{r}
+Final_Cor_Numeric_data <- Person_Recitation
+cormat <- cor((Final_Cor_Numeric_data), method = "pearson")
+
+#corrplot::corrplot(cormat, main="Correlation Plot for Numerical Variables", method="number")
+#hist(cormat)
+
+rownames <- c("1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20",
+                  "21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38",
+                  "39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56",
+                  "57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74",
+                  "75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92",
+                  "93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108",
+                  "109","110","111","112","113","114")
+
+colnames = rownames
+
+cor_matrix <- matrix(0, nrow = length(rownames), ncol = length(colnames),  dimnames = list(rownames, colnames))
+
+for (i in 1:length(rownames)) {
+  for (j in 1:length(colnames)) {
+    if(( cormat[i,j] >= 0.95 ) && ( i != j))
+      {
+        cor_matrix[i,j] <- 1
+      }
+    }
+  } 
+
+cormatrix_1 <- cor_matrix
+
+network <- graph_from_adjacency_matrix(cor_matrix, mode = "undirected")
+network <- set_vertex_attr(network, "Medical", value = c(rep(1, 59), rep(2, 28), rep(3, 20), rep(4, 7)))
+
+V(network)$color <- ifelse(V(network)$Medical == 1, "Yellow", 
+                           ifelse(V(network)$Medical == 2, "Green",
+                                  ifelse(V(network)$Medical == 3, "Grey", "Pink")))
+plot(network, vertex.label.cex=.9, vertex.label.font=2.5, edge.color = "red")
+```
+
